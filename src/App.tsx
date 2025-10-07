@@ -77,7 +77,6 @@ function App() {
 
   // Mock CAPTCHA API
   const getCaptcha = async () => {
-    // --- This part is your existing state reset logic, which is good to keep ---
     setCaptchaLoading(true);
     setResult(null);
     setAiLogs([]);
@@ -85,7 +84,6 @@ function App() {
     setAiTimer(0);
     setUserHasSubmitted(false);
 
-    // --- NEW: Fetching logic for your live backend ---
     try {
       const response = await fetch(`${backendUrl}/get_captcha`);
 
@@ -101,32 +99,25 @@ function App() {
       const correctText = filename.split(".")[0];
       setCaptchaText(correctText);
 
-      // 3. Construct the full image URL using the filename
       const imageUrl = `${backendUrl}/static/images/${filename}`;
 
-      // 4. Update the state with the new image URL
       setCaptchaImage(imageUrl);
       setShowCaptcha(true);
     } catch (error) {
       console.error("Failed to fetch captcha:", error);
-      // Optional: Set an error state to display a message to the user
-      // setError('Could not load a new captcha. Please try again.');
     } finally {
-      // --- This part is your existing logic to start the game ---
       setCaptchaLoading(false);
-
-      // Start timer
       setIsTimerRunning(true);
     }
   };
 
-  // Mock user submission
+  // user submission
   const submitGuess = async () => {
     setIsTimerRunning(false);
     const userTime = timer;
     setUserHasSubmitted(true);
 
-    // Mock validation (randomly succeed/fail)
+    // validation
     const success = userGuess.toLowerCase() === captchaText.toLowerCase();
 
     setResult({
