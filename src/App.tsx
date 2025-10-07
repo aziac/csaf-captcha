@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import "./App.css";
+import catGif from "./assets/cat-meme-laughing-gif.gif";
 
 interface CaptchaResult {
   success: boolean;
@@ -325,7 +326,11 @@ function App() {
 
                 {result.aiTime && (
                   <div className="result-gif">
-                    <img src="/cat-meme-laughing-gif.gif" alt="Celebration" className="celebration-gif" />
+                    <img
+                      src={catGif}
+                      alt="Celebration"
+                      className="celebration-gif"
+                    />
                   </div>
                 )}
 
