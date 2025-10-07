@@ -233,6 +233,11 @@ function App() {
                   type="text"
                   value={userGuess}
                   onChange={(e) => setUserGuess(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && userGuess.trim()) {
+                      submitGuess();
+                    }
+                  }}
                   placeholder="Enter CAPTCHA text"
                   className="captcha-input"
                 />
@@ -317,6 +322,12 @@ function App() {
                     </div>
                   )}
                 </div>
+
+                {result.aiTime && (
+                  <div className="result-gif">
+                    <img src="/cat-meme-laughing-gif.gif" alt="Celebration" className="celebration-gif" />
+                  </div>
+                )}
 
                 <button onClick={resetDemo} className="reset-button">
                   Try Another CAPTCHA
