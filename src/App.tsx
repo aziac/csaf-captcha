@@ -1,173 +1,211 @@
-import { useState, useEffect, useRef } from 'react'
-import './App.css'
+import { useState, useEffect, useRef } from "react";
+import "./App.css";
 
 interface CaptchaResult {
-  success: boolean
-  userTime?: number
-  aiTime?: number
-  aiSteps?: string[]
+  success: boolean;
+  userTime?: number;
+  aiTime?: number;
+  aiSteps?: string[];
 }
 
 interface LogEntry {
-  step: string
-  timestamp: number
+  step: string;
+  timestamp: number;
 }
 
 function App() {
-  const [captchaImage, setCaptchaImage] = useState<string>('')
-  const [userGuess, setUserGuess] = useState('')
-  const [isLoading, setCaptchaLoading] = useState(false)
-  const [timer, setTimer] = useState(0)
-  const [isTimerRunning, setIsTimerRunning] = useState(false)
-  const [result, setResult] = useState<CaptchaResult | null>(null)
-  const [aiLogs, setAiLogs] = useState<LogEntry[]>([])
-  const [isAiSolving, setIsAiSolving] = useState(false)
-  const [showCaptcha, setShowCaptcha] = useState(false)
-  const [userHasSubmitted, setUserHasSubmitted] = useState(false)
-  const [aiTimer, setAiTimer] = useState(0)
-  const [isAiTimerRunning, setIsAiTimerRunning] = useState(false)
+  const [captchaImage, setCaptchaImage] = useState<string>("");
+  const [userGuess, setUserGuess] = useState("");
+  const [isLoading, setCaptchaLoading] = useState(false);
+  const [timer, setTimer] = useState(0);
+  const [isTimerRunning, setIsTimerRunning] = useState(false);
+  const [result, setResult] = useState<CaptchaResult | null>(null);
+  const [aiLogs, setAiLogs] = useState<LogEntry[]>([]);
+  const [isAiSolving, setIsAiSolving] = useState(false);
+  const [showCaptcha, setShowCaptcha] = useState(false);
+  const [userHasSubmitted, setUserHasSubmitted] = useState(false);
+  const [aiTimer, setAiTimer] = useState(0);
+  const [isAiTimerRunning, setIsAiTimerRunning] = useState(false);
+  const [captchaText, setCaptchaText] = useState("");
+  const [captchaFilename, setCaptchaFilename] = useState("");
 
-  const timerRef = useRef<number | null>(null)
-  const startTimeRef = useRef<number>(0)
-  const aiTimerRef = useRef<number | null>(null)
-  const aiStartTimeRef = useRef<number>(0)
+  const timerRef = useRef<number | null>(null);
+  const startTimeRef = useRef<number>(0);
+  const aiTimerRef = useRef<number | null>(null);
+  const aiStartTimeRef = useRef<number>(0);
+
+  const backendUrl = "https://aziac-csaf-captcha.hf.space";
 
   // Updates displayed time every 100ms while timer is running
   useEffect(() => {
     if (isTimerRunning) {
-      startTimeRef.current = Date.now()
+      startTimeRef.current = Date.now();
       timerRef.current = setInterval(() => {
-        setTimer(Date.now() - startTimeRef.current!)
-      }, 100)
+        setTimer(Date.now() - startTimeRef.current!);
+      }, 100);
     } else {
       if (timerRef.current) {
-        clearInterval(timerRef.current)
+        clearInterval(timerRef.current);
       }
     }
 
     return () => {
       if (timerRef.current) {
-        clearInterval(timerRef.current)
+        clearInterval(timerRef.current);
       }
-    }
-  }, [isTimerRunning])
+    };
+  }, [isTimerRunning]);
 
   // Updates displayed time every 100ms while AI timer is running
   useEffect(() => {
     if (isAiTimerRunning) {
       aiTimerRef.current = setInterval(() => {
-        setAiTimer(Date.now() - aiStartTimeRef.current)
-      }, 100)
+        setAiTimer(Date.now() - aiStartTimeRef.current);
+      }, 100);
     } else {
       if (aiTimerRef.current) {
-        clearInterval(aiTimerRef.current)
+        clearInterval(aiTimerRef.current);
       }
     }
 
     return () => {
       if (aiTimerRef.current) {
-        clearInterval(aiTimerRef.current)
+        clearInterval(aiTimerRef.current);
       }
-    }
-  }, [isAiTimerRunning])
+    };
+  }, [isAiTimerRunning]);
 
   // Mock CAPTCHA API
   const getCaptcha = async () => {
-    setCaptchaLoading(true)
-    setResult(null)
-    setAiLogs([])
-    setTimer(0)
-    setAiTimer(0)
-    setUserHasSubmitted(false)
+    // --- This part is your existing state reset logic, which is good to keep ---
+    setCaptchaLoading(true);
+    setResult(null);
+    setAiLogs([]);
+    setTimer(0);
+    setAiTimer(0);
+    setUserHasSubmitted(false);
 
-    // Just simulates API delay
-    await new Promise(resolve => setTimeout(resolve, 1000))
+    // --- NEW: Fetching logic for your live backend ---
+    try {
+      const response = await fetch(`${backendUrl}/get_captcha`);
 
-    // Mock CAPTCHA image (using a placeholder service)
-    const captchaText = ""
-    const imageUrl = ``
+      // Handle cases where the server responds with an error (e.g., 404, 500)
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
 
-    setCaptchaImage(imageUrl)
-    setShowCaptcha(true)
-    setCaptchaLoading(false)
+      const data = await response.json();
+      const filename = data.filename;
 
-    // Start timer
-    setIsTimerRunning(true)
-  }
+      setCaptchaFilename(filename);
+      const correctText = filename.split(".")[0];
+      setCaptchaText(correctText);
+
+      // 3. Construct the full image URL using the filename
+      const imageUrl = `${backendUrl}/static/images/${filename}`;
+
+      // 4. Update the state with the new image URL
+      setCaptchaImage(imageUrl);
+      setShowCaptcha(true);
+    } catch (error) {
+      console.error("Failed to fetch captcha:", error);
+      // Optional: Set an error state to display a message to the user
+      // setError('Could not load a new captcha. Please try again.');
+    } finally {
+      // --- This part is your existing logic to start the game ---
+      setCaptchaLoading(false);
+
+      // Start timer
+      setIsTimerRunning(true);
+    }
+  };
 
   // Mock user submission
   const submitGuess = async () => {
-    setIsTimerRunning(false)
-    const userTime = timer
-    setUserHasSubmitted(true)
+    setIsTimerRunning(false);
+    const userTime = timer;
+    setUserHasSubmitted(true);
 
     // Mock validation (randomly succeed/fail)
-    const success = Math.random() > 0.5
+    const success = userGuess.toLowerCase() === captchaText.toLowerCase();
 
     setResult({
       success,
       userTime,
-    })
-  }
+    });
+  };
 
   // Mock AI solving with streaming logs (To be changed later with actual Model Response!)
   const solveWithAI = async () => {
-    setIsAiSolving(true)
-    setAiLogs([])
-    setIsAiTimerRunning(true)
+    setIsAiSolving(true);
+    setAiLogs([]);
+    setIsAiTimerRunning(true);
 
-    const aiStartTime = Date.now()
-    aiStartTimeRef.current = aiStartTime
+    const aiStartTime = Date.now();
+    aiStartTimeRef.current = aiStartTime;
 
-    // Mock logs
-    const steps = [
-      "Analyzing CAPTCHA image...",
-      "Detecting text regions...",
-      "Applying OCR preprocessing...",
-      "Running character recognition...",
-      "Validating detected text...",
-      "Generating final answer..."
-    ]
+    const addLog = (step: string) => {
+      setAiLogs((prev) => [
+        ...prev,
+        { step, timestamp: Date.now() - aiStartTime },
+      ]);
+    };
 
-    // Simulates streaming logs with 800ms delay between each step
-    for (let i = 0; i < steps.length; i++) {
-      await new Promise(resolve => setTimeout(resolve, 800))
-      setAiLogs(prev => [...prev, {
-        step: steps[i],
-        timestamp: Date.now() - aiStartTime
-      }])
+    try {
+      addLog("Sending image to AI for analysis...");
+
+      const response = await fetch(`${backendUrl}/solve_captcha`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ filename: captchaFilename }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`AI server error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      const aiPrediction = data.prediction;
+
+      addLog(`AI prediction received: "${aiPrediction}"`);
+
+      setResult((prev) => ({
+        ...prev!,
+        aiPrediction: aiPrediction,
+      }));
+    } catch (error) {
+      console.error("AI failed to solve:", error);
+      addLog("An error occurred during AI solving.");
+    } finally {
+      setIsAiTimerRunning(false);
+      const finalAiTime = Date.now() - aiStartTime;
+      setResult((prev) => ({
+        ...prev!,
+        aiTime: finalAiTime,
+      }));
+      setIsAiSolving(false);
     }
-
-    setIsAiTimerRunning(false)
-    const finalAiTime = Date.now() - aiStartTime
-
-    setResult(prev => ({
-      ...prev,
-      success: prev?.success || false,
-      aiTime: finalAiTime,
-      aiSteps: steps
-    }))
-
-    setIsAiSolving(false)
-  }
+  };
 
   const resetDemo = () => {
-    setCaptchaImage('')
-    setUserGuess('')
-    setShowCaptcha(false)
-    setResult(null)
-    setAiLogs([])
-    setTimer(0)
-    setAiTimer(0)
-    setIsTimerRunning(false)
-    setIsAiTimerRunning(false)
-    setIsAiSolving(false)
-    setUserHasSubmitted(false)
-  }
+    setCaptchaImage("");
+    setUserGuess("");
+    setShowCaptcha(false);
+    setResult(null);
+    setAiLogs([]);
+    setTimer(0);
+    setAiTimer(0);
+    setIsTimerRunning(false);
+    setIsAiTimerRunning(false);
+    setIsAiSolving(false);
+    setUserHasSubmitted(false);
+  };
 
   const formatTime = (ms: number) => {
-    return (ms / 1000).toFixed(1) + 's'
-  }
+    return (ms / 1000).toFixed(1) + "s";
+  };
 
   return (
     <div className="app">
@@ -177,10 +215,7 @@ function App() {
         {!showCaptcha && !isLoading && (
           <div className="landing">
             <p>Test your skills against AI in solving CAPTCHAs!</p>
-            <button
-              onClick={getCaptcha}
-              className="primary-button"
-            >
+            <button onClick={getCaptcha} className="primary-button">
               Get CAPTCHA
             </button>
           </div>
@@ -196,15 +231,9 @@ function App() {
         {showCaptcha && (
           <div className="captcha-section">
             <div className="captcha-container">
-              <img
-                src={captchaImage}
-                alt="CAPTCHA"
-                className="captcha-image"
-              />
+              <img src={captchaImage} alt="CAPTCHA" className="captcha-image" />
 
-              <div className="timer">
-                Timer: {formatTime(timer)}
-              </div>
+              <div className="timer">Timer: {formatTime(timer)}</div>
             </div>
 
             {!userHasSubmitted && (
@@ -236,7 +265,7 @@ function App() {
                   disabled={isAiSolving}
                   className="ai-button"
                 >
-                  {isAiSolving ? 'AI Solving...' : 'Solve with AI'}
+                  {isAiSolving ? "AI Solving..." : "Solve with AI"}
                 </button>
                 {isAiTimerRunning && (
                   <div className="ai-timer">
@@ -252,7 +281,9 @@ function App() {
                 <div className="log-container">
                   {aiLogs.map((log, index) => (
                     <div key={index} className="log-entry">
-                      <span className="log-time">{formatTime(log.timestamp)}</span>
+                      <span className="log-time">
+                        {formatTime(log.timestamp)}
+                      </span>
                       <span className="log-step">{log.step}</span>
                     </div>
                   ))}
@@ -276,20 +307,22 @@ function App() {
                   <div className="result-card">
                     <h4>Your Result</h4>
                     <div className="human-result">
-                      {result.success ? '✓ Correct' : '✗ Incorrect'}
+                      {result.success ? "✓ Correct" : "✗ Incorrect"}
                     </div>
                     {result.userTime && (
-                      <div className="time">Time: {formatTime(result.userTime)}</div>
+                      <div className="time">
+                        Time: {formatTime(result.userTime)}
+                      </div>
                     )}
                   </div>
 
                   {result.aiTime && (
                     <div className="result-card">
                       <h4>AI Result</h4>
-                      <div className="status success">
-                        ✓ Solved
+                      <div className="status success">✓ Solved</div>
+                      <div className="time">
+                        Time: {formatTime(result.aiTime)}
                       </div>
-                      <div className="time">Time: {formatTime(result.aiTime)}</div>
                     </div>
                   )}
                 </div>
@@ -303,7 +336,7 @@ function App() {
         )}
       </div>
     </div>
-  )
+  );
 }
 
-export default App
+export default App;
